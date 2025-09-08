@@ -102,7 +102,7 @@ hmcts-task-management/
 ### 1. Clone the Repository
 
 ```bash
-git clone [https://github.com/Trojan9/hmcts-task-management.git](https://github.com/Trojan9/hmct.git)
+git clone https://github.com/Trojan9/hmct.git
 cd hmcts-task-management
 ```
 
