@@ -56,6 +56,8 @@ export const TaskForm = ({
   const [values, setValues] = useState<TaskFormValues>(initialValues);
   const [errors, setErrors] = useState<TaskFormErrors>({});
   const [formError, setFormError] = useState<string>();
+  // Bumped on every submit so the error summary takes focus again each time.
+  const [submitCount, setSubmitCount] = useState(0);
 
   const showErrors = (next: TaskFormErrors, general?: string) => {
     setErrors(next);
@@ -70,6 +72,7 @@ export const TaskForm = ({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setSubmitCount((count) => count + 1);
     const validationErrors = validateTaskForm(values, { requireFutureDueDate });
     if (Object.keys(validationErrors).length > 0) {
       showErrors(validationErrors);
@@ -101,7 +104,7 @@ export const TaskForm = ({
 
   return (
     <>
-      <ErrorSummary errors={summary} />
+      <ErrorSummary key={submitCount} errors={summary} />
 
       <form onSubmit={handleSubmit} noValidate>
         <div className={`govuk-form-group${errors.title ? ' govuk-form-group--error' : ''}`}>
