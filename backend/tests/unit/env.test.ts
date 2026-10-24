@@ -8,6 +8,7 @@ describe('loadConfig', () => {
       CORS_ORIGIN: ['http://localhost:5173'],
       LOG_LEVEL: 'info',
       RATE_LIMIT_MAX: 300,
+      TASK_STORE: 'postgres',
     });
   });
 

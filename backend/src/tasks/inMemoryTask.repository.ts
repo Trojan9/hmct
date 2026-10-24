@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/require-await -- implements an async interface synchronously */
 import { randomUUID } from 'node:crypto';
-import { TaskRepository } from '../../src/tasks/task.repository';
+import { TaskRepository } from './task.repository';
 import {
   ListTasksQuery,
   StatusCounts,
@@ -7,7 +8,7 @@ import {
   Task,
   TaskInput,
   TaskStatus,
-} from '../../src/tasks/task.types';
+} from './task.types';
 
 const compare = (a: Task, b: Task, field: ListTasksQuery['sortBy']): number => {
   // PostgreSQL orders enum values by declaration order, not alphabetically.
@@ -19,7 +20,7 @@ const compare = (a: Task, b: Task, field: ListTasksQuery['sortBy']): number => {
 };
 
 /**
- * In-memory TaskRepository used by the unit and API tests. It mirrors the behaviour of
+ * In-memory TaskRepository for tests and the zero-setup demo mode (TASK_STORE=memory). It mirrors the behaviour of
  * PrismaTaskRepository (sorting, paging, not-found handling) without a database.
  */
 export class InMemoryTaskRepository implements TaskRepository {

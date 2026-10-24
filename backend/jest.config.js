@@ -22,6 +22,7 @@ module.exports = {
     'src/**/*.ts',
     // Process bootstrap and the Prisma adapter are covered by the db project instead.
     '!src/server.ts',
+    '!src/scripts/**',
     '!src/tasks/prismaTask.repository.ts',
   ],
   coverageThreshold: {

@@ -1,7 +1,7 @@
 import { NotFoundError, ValidationError } from '../../src/errors/AppError';
 import { TaskService } from '../../src/tasks/task.service';
 import { ListTasksQuery } from '../../src/tasks/task.types';
-import { InMemoryTaskRepository } from '../support/inMemoryTaskRepository';
+import { InMemoryTaskRepository } from '../../src/tasks/inMemoryTask.repository';
 import { NOW, PAST, buildTaskInput, clock } from '../support/testApp';
 
 const defaultQuery: ListTasksQuery = { sortBy: 'dueDate', order: 'asc', page: 1, pageSize: 20 };

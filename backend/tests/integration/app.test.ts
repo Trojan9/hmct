@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { TaskRepository } from '../../src/tasks/task.repository';
-import { InMemoryTaskRepository } from '../support/inMemoryTaskRepository';
+import { InMemoryTaskRepository } from '../../src/tasks/inMemoryTask.repository';
 import { buildTestApp, clock } from '../support/testApp';
 
 /** A repository whose database is unreachable. */

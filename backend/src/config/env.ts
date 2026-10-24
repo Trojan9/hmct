@@ -14,6 +14,8 @@ const EnvSchema = z.object({
     ),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
+  /** 'memory' runs without a database, for demos; data is lost on restart. */
+  TASK_STORE: z.enum(['postgres', 'memory']).default('postgres'),
 });
 
 export type Config = z.infer<typeof EnvSchema>;
