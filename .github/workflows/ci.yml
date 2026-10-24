@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: tasks
+          POSTGRES_PASSWORD: tasks
+          POSTGRES_DB: tasks_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U tasks -d tasks_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://tasks:tasks@localhost:5432/tasks_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Check formatting
+        run: npm run format:check
+      - name: Type-check
+        run: npm run typecheck
+      - name: Unit and API tests with coverage
+        run: npm run test:coverage
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+      - name: Check the schema matches the migrations
+        run: npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "$DATABASE_URL" --exit-code
+      - name: PostgreSQL repository tests
+        run: npm run test:db
+      - name: Build
+        run: npm run build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-coverage
+          path: backend/coverage
+          if-no-files-found: ignore
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Check formatting
+        run: npm run format:check
+      - name: Type-check
+        run: npm run typecheck
+      - name: Tests (including axe accessibility checks) with coverage
+        run: npm run test:coverage
+      - name: Build
+        run: npm run build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-coverage
+          path: frontend/coverage
+          if-no-files-found: ignore
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: npm audit (production dependencies)
+        working-directory: ${{ matrix.package }}
+        run: npm audit --omit=dev --audit-level=high
+
+  smoke:
+    name: Docker smoke test
+    runs-on: ubuntu-latest
+    needs: [api, web]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start the stack
+        run: docker compose up --build --detach --wait --wait-timeout 180
+      - name: Web app is served
+        run: curl --fail --silent http://localhost:8080/ | grep -q '<div id="root">'
+      - name: API is reachable through the web proxy and seeded
+        run: |
+          curl --fail --silent http://localhost:8080/health/ready
+          curl --fail --silent 'http://localhost:8080/api/tasks?pageSize=1' | grep -q '"total":5'
+      - name: Create, update and delete a task end to end
+        run: |
+          set -euo pipefail
+          id=$(curl --fail --silent -X POST http://localhost:8080/api/tasks \
+            -H 'Content-Type: application/json' \
+            -d '{"title":"Smoke test","dueDate":"2099-01-01T09:00:00Z"}' | jq -r .id)
+          curl --fail --silent -X PATCH "http://localhost:8080/api/tasks/$id/status" \
+            -H 'Content-Type: application/json' -d '{"status":"COMPLETED"}' | jq -e '.status == "COMPLETED"'
+          curl --fail --silent -X DELETE "http://localhost:8080/api/tasks/$id" -o /dev/null -w '%{http_code}' | grep -q 204
+          curl --silent "http://localhost:8080/api/tasks/$id" -o /dev/null -w '%{http_code}' | grep -q 404
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Stop the stack
+        if: always()
+        run: docker compose down --volumes
