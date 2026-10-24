@@ -1,41 +1,61 @@
 {
-  "name": "backend",
+  "name": "hmcts-task-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "REST API for HMCTS caseworker tasks",
   "scripts": {
-    "dev": "nodemon src/app.ts",
-    "build": "tsc",
-    "start": "node dist/app.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.eslint.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "jest --selectProjects unit integration",
+    "test:db": "jest --selectProjects db --runInBand",
+    "test:coverage": "jest --selectProjects unit integration --coverage",
     "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@prisma/client": "^6.10.1",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.7.1",
     "helmet": "^8.1.0",
-    "winston": "^3.17.0",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
+    "swagger-ui-express": "^5.0.1",
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.7",
     "@types/supertest": "^6.0.3",
+    "@types/swagger-ui-express": "^4.1.8",
+    "eslint": "^9.39.5",
+    "globals": "^17.13.0",
     "jest": "^30.0.3",
-    "nodemon": "^3.1.10",
+    "prettier": "^3.9.10",
     "prisma": "^6.10.1",
     "supertest": "^7.1.1",
     "ts-jest": "^29.4.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "tsx": "^4.23.15",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.72.0"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
