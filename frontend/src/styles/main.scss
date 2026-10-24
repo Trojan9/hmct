@@ -106,3 +106,8 @@
     }
   }
 }
+
+// Show line breaks the caseworker typed in a description.
+.app-preserve-line-breaks {
+  white-space: pre-line;
+}
