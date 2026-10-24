@@ -33,8 +33,8 @@ const NavItem = ({ to, label }: { to: string; label: string }) => {
 /**
  * In a single-page app the browser does not reset focus on navigation, so
  * screen reader users would not hear that the page changed. Move focus to the
- * new page's h1 unless something on the page (an error summary or banner)
- * has already taken it.
+ * new page's h1 (waiting for it if the page is still loading) unless something
+ * on the page, such as an error summary or banner, has already taken focus.
  */
 const useFocusMainHeadingOnNavigate = (main: React.RefObject<HTMLElement | null>) => {
   const { pathname } = useLocation();
@@ -45,12 +45,24 @@ const useFocusMainHeadingOnNavigate = (main: React.RefObject<HTMLElement | null>
       isFirstRender.current = false;
       return;
     }
-    if (main.current?.contains(document.activeElement)) return;
-    const heading = main.current?.querySelector('h1');
-    if (heading) {
+    const container = main.current;
+    if (!container) return;
+
+    const tryFocus = () => {
+      if (container.contains(document.activeElement)) return true;
+      const heading = container.querySelector('h1');
+      if (!heading) return false;
       heading.setAttribute('tabindex', '-1');
       heading.focus();
-    }
+      return true;
+    };
+    if (tryFocus()) return;
+
+    const observer = new MutationObserver(() => {
+      if (tryFocus()) observer.disconnect();
+    });
+    observer.observe(container, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [pathname, main]);
 };
 
