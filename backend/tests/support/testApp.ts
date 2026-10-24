@@ -3,7 +3,7 @@ import { Config, loadConfig } from '../../src/config/env';
 import { createLogger } from '../../src/lib/logger';
 import { TaskRepository } from '../../src/tasks/task.repository';
 import { TaskInput } from '../../src/tasks/task.types';
-import { InMemoryTaskRepository } from './inMemoryTaskRepository';
+import { InMemoryTaskRepository } from '../../src/tasks/inMemoryTask.repository';
 
 /** Fixed "now" so date rules are deterministic. */
 export const NOW = new Date('2026-01-15T09:00:00.000Z');
