@@ -57,7 +57,7 @@ jobs:
         run: npm run test:db
       - name: Build
         run: npm run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: api-coverage
@@ -88,7 +88,7 @@ jobs:
         run: npm run test:coverage
       - name: Build
         run: npm run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: web-coverage
