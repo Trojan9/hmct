@@ -61,7 +61,7 @@ const TaskDetail = ({ task }: { task: Task }) => {
           change={{ to: `/tasks/${task.id}/edit`, hiddenText: 'description' }}
         >
           {task.description ? (
-            <p className="govuk-body govuk-!-margin-bottom-0" style={{ whiteSpace: 'pre-line' }}>
+            <p className="govuk-body govuk-!-margin-bottom-0 app-preserve-line-breaks">
               {task.description}
             </p>
           ) : (
