@@ -188,6 +188,30 @@ frontend/
 docker-compose.yml
 ```
 
+## How this was built
+
+The original submission was a single commit. I then improved it through separate branches, one per change. Each was opened as a pull request into `main` and merged with a merge commit, so the history shows what changed in each step and why:
+
+| PR | Branch | Change |
+| --- | --- | --- |
+| [#2](https://github.com/Trojan9/hmct/pull/2) | `chore/repo-cleanup` | Stop tracking logs, the local database and `.env`; add `.gitignore` and editor config |
+| [#3](https://github.com/Trojan9/hmct/pull/3) | `feature/api-refactor` | Layered API, PostgreSQL, status endpoint, validation, error handling, OpenAPI docs |
+| [#4](https://github.com/Trojan9/hmct/pull/4) | `test/api` | API unit, integration and PostgreSQL tests |
+| [#5](https://github.com/Trojan9/hmct/pull/5) | `feature/api-docker` | API Dockerfile and the no-database demo mode |
+| [#6](https://github.com/Trojan9/hmct/pull/6) | `feature/govuk-frontend` | Frontend rebuilt with the GOV.UK Design System |
+| [#7](https://github.com/Trojan9/hmct/pull/7) | `test/web` | Frontend unit, page and accessibility tests |
+| [#8](https://github.com/Trojan9/hmct/pull/8) | `feature/docker-compose` | Web Dockerfile, nginx and docker compose |
+| [#9](https://github.com/Trojan9/hmct/pull/9) | `chore/dependency-security` | Fix known dependency vulnerabilities |
+| [#10](https://github.com/Trojan9/hmct/pull/10) | `ci/github-actions` | CI, CodeQL, Dependabot and a Docker smoke test |
+| [#11](https://github.com/Trojan9/hmct/pull/11) | `docs/readme` | This README |
+| [#12](https://github.com/Trojan9/hmct/pull/12) | `fix/error-summary-focus` | Fix the error summary taking focus on every render |
+
+Conventions:
+
+- **Branch names** start with the type of change: `feature/`, `fix/`, `test/`, `chore/`, `ci/` or `docs/`.
+- **Commit messages** follow [Conventional Commits](https://www.conventionalcommits.org/) (for example `feat(web): ...` or `fix(api): ...`). The body explains why the change was made.
+- **Changes reach `main` only through a pull request.** Since #10, every pull request runs the full CI pipeline.
+
 ## What I would do next
 
 - Sign-in through HMCTS IdAM, and assigning tasks to caseworkers.
