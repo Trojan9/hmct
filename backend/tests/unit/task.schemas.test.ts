@@ -75,7 +75,7 @@ describe('createTaskSchema', () => {
   it('rejects unknown fields', () => {
     expect(
       fieldErrors(() => parseOrThrow(createTaskSchema, { ...validCreate, id: 'abc' })),
-    ).toEqual([{ field: 'body', message: "Unrecognized key(s) in object: 'id'" }]);
+    ).toEqual([{ field: 'body', message: 'Unexpected field: id' }]);
   });
 
   it('reports every problem at once', () => {
