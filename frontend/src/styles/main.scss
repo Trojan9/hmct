@@ -1,0 +1,108 @@
+// GOV.UK Frontend configured through MoJ Frontend, without GOV.UK branding:
+// this internal HMCTS tool is not on a gov.uk domain, so it must not use the
+// GDS Transport typeface or the crown.
+@use 'node_modules/@ministryofjustice/frontend/moj/base' with (
+  $moj-font-family: (
+    arial,
+    sans-serif,
+  )
+);
+
+// Only the components this service uses, to keep the stylesheet small.
+@use 'node_modules/govuk-frontend/dist/govuk/core';
+@use 'node_modules/govuk-frontend/dist/govuk/objects';
+@use 'node_modules/govuk-frontend/dist/govuk/components/back-link';
+@use 'node_modules/govuk-frontend/dist/govuk/components/button';
+@use 'node_modules/govuk-frontend/dist/govuk/components/character-count';
+@use 'node_modules/govuk-frontend/dist/govuk/components/date-input';
+@use 'node_modules/govuk-frontend/dist/govuk/components/error-message';
+@use 'node_modules/govuk-frontend/dist/govuk/components/error-summary';
+@use 'node_modules/govuk-frontend/dist/govuk/components/fieldset';
+@use 'node_modules/govuk-frontend/dist/govuk/components/footer';
+@use 'node_modules/govuk-frontend/dist/govuk/components/generic-header';
+@use 'node_modules/govuk-frontend/dist/govuk/components/hint';
+@use 'node_modules/govuk-frontend/dist/govuk/components/input';
+@use 'node_modules/govuk-frontend/dist/govuk/components/label';
+@use 'node_modules/govuk-frontend/dist/govuk/components/notification-banner';
+@use 'node_modules/govuk-frontend/dist/govuk/components/pagination';
+@use 'node_modules/govuk-frontend/dist/govuk/components/radios';
+@use 'node_modules/govuk-frontend/dist/govuk/components/select';
+@use 'node_modules/govuk-frontend/dist/govuk/components/service-navigation';
+@use 'node_modules/govuk-frontend/dist/govuk/components/skip-link';
+@use 'node_modules/govuk-frontend/dist/govuk/components/summary-list';
+@use 'node_modules/govuk-frontend/dist/govuk/components/table';
+@use 'node_modules/govuk-frontend/dist/govuk/components/tag';
+@use 'node_modules/govuk-frontend/dist/govuk/components/textarea';
+@use 'node_modules/govuk-frontend/dist/govuk/components/warning-text';
+@use 'node_modules/govuk-frontend/dist/govuk/utilities';
+@use 'node_modules/govuk-frontend/dist/govuk/overrides';
+@use 'node_modules/@ministryofjustice/frontend/moj/objects/button-group';
+@use 'node_modules/@ministryofjustice/frontend/moj/components/page-header-actions/page-header-actions';
+@use 'node_modules/@ministryofjustice/frontend/moj/components/sub-navigation/sub-navigation';
+@use 'node_modules/govuk-frontend/dist/govuk/base' as govuk;
+
+.app-task-table__description {
+  @include govuk.govuk-font($size: 16);
+  display: block;
+  margin-top: govuk.govuk-spacing(1);
+  color: govuk.govuk-functional-colour(secondary-text);
+}
+
+.app-task-table__tags .govuk-tag {
+  margin-top: govuk.govuk-spacing(1);
+}
+
+.app-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: govuk.govuk-spacing(3);
+  margin-bottom: govuk.govuk-spacing(4);
+
+  .govuk-form-group,
+  .govuk-button {
+    margin-bottom: 0;
+  }
+}
+
+.app-results-count {
+  margin-bottom: govuk.govuk-spacing(4);
+}
+
+// Keep short labels on one line in the task table.
+.app-task-table .govuk-tag,
+.app-task-table__action {
+  white-space: nowrap;
+}
+
+// On small screens, show each task as a stacked block instead of a wide table.
+@include govuk.govuk-media-query($until: tablet) {
+  .app-task-table {
+    thead {
+      @include govuk.govuk-visually-hidden;
+    }
+
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+    }
+
+    .govuk-table__row {
+      padding: govuk.govuk-spacing(3) 0;
+      border-bottom: 1px solid govuk.govuk-functional-colour(border);
+    }
+
+    .govuk-table__cell {
+      padding: 0 0 govuk.govuk-spacing(2);
+      border: 0;
+      text-align: left;
+    }
+
+    .govuk-table__cell[data-label]::before {
+      content: attr(data-label) ' ';
+      font-weight: 700;
+    }
+  }
+}

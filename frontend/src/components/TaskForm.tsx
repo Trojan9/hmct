@@ -1,225 +1,286 @@
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { format } from 'date-fns';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { taskAPI } from '../services/api';
-import type { Task, CreateTaskRequest } from '../services/api';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ApiError, TASK_STATUSES, type TaskInput } from '../api/tasks';
+import { STATUS_DISPLAY } from '../tasks/status';
+import {
+  DESCRIPTION_MAX_LENGTH,
+  FIELD_IDS,
+  TITLE_MAX_LENGTH,
+  type TaskFormErrors,
+  type TaskFormField,
+  type TaskFormValues,
+  fromApiErrors,
+  toTaskInput,
+  validateTaskForm,
+} from '../tasks/validation';
+import { ErrorSummary, type ErrorSummaryItem } from './ErrorSummary';
 
-interface FormData {
-  title: string;
-  description: string;
-  status: Task['status'];
-  dueDate: string;
+const FIELD_ORDER: TaskFormField[] = ['title', 'description', 'status', 'dueDate', 'dueTime'];
+
+const ErrorMessage = ({ id, message }: { id: string; message?: string }) =>
+  message ? (
+    <p id={id} className="govuk-error-message">
+      <span className="govuk-visually-hidden">Error:</span> {message}
+    </p>
+  ) : null;
+
+const describedBy = (...ids: (string | false | undefined)[]) =>
+  ids.filter(Boolean).join(' ') || undefined;
+
+interface TaskFormProps {
+  initialValues: TaskFormValues;
+  /** New tasks must be due in the future; edits may keep a past due date. */
+  requireFutureDueDate: boolean;
+  submitLabel: string;
+  cancelHref: string;
+  isSubmitting: boolean;
+  onSubmit: (input: TaskInput) => Promise<unknown>;
+  onErrorsChange: (hasErrors: boolean) => void;
 }
 
-const TaskForm: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const isEditing = !!id;
+/**
+ * Create/edit task form built from GOV.UK Design System components. Validates
+ * on submit (not as the user types), shows an error summary plus inline
+ * errors, and maps API validation errors onto the same fields.
+ * https://design-system.service.gov.uk/patterns/validation/
+ */
+export const TaskForm = ({
+  initialValues,
+  requireFutureDueDate,
+  submitLabel,
+  cancelHref,
+  isSubmitting,
+  onSubmit,
+  onErrorsChange,
+}: TaskFormProps) => {
+  const [values, setValues] = useState<TaskFormValues>(initialValues);
+  const [errors, setErrors] = useState<TaskFormErrors>({});
+  const [formError, setFormError] = useState<string>();
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormData>({
-    defaultValues: {
-      title: '',
-      description: '',
-      status: 'PENDING',
-      dueDate: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-    },
-  });
+  const showErrors = (next: TaskFormErrors, general?: string) => {
+    setErrors(next);
+    setFormError(general);
+    onErrorsChange(Object.keys(next).length > 0 || Boolean(general));
+  };
 
-  const { data: task, isLoading: isLoadingTask } = useQuery({
-    queryKey: ['task', id],
-    queryFn: () => taskAPI.getTaskById(id!),
-    enabled: isEditing,
-  });
+  const set =
+    (field: keyof TaskFormValues) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setValues((current) => ({ ...current, [field]: event.target.value }));
 
-  React.useEffect(() => {
-    if (task) {
-      setValue('title', task.title);
-      setValue('description', task.description || '');
-      setValue('status', task.status);
-      setValue('dueDate', format(new Date(task.dueDate), "yyyy-MM-dd'T'HH:mm"));
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const validationErrors = validateTaskForm(values, { requireFutureDueDate });
+    if (Object.keys(validationErrors).length > 0) {
+      showErrors(validationErrors);
+      return;
     }
-  }, [task, setValue]);
-
-  const createMutation = useMutation({
-    mutationFn: taskAPI.createTask,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      toast.success('Task created successfully');
-      navigate('/');
-    },
-    onError: () => {
-      toast.error('Failed to create task');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (data: FormData) => taskAPI.updateTask(id!, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task', id] });
-      toast.success('Task updated successfully');
-      navigate('/');
-    },
-    onError: () => {
-      toast.error('Failed to update task');
-    },
-  });
-
-  const onSubmit = (data: FormData) => {
-    const taskData: CreateTaskRequest = {
-      title: data.title,
-      description: data.description || undefined,
-      status: data.status,
-      dueDate: new Date(data.dueDate).toISOString(),
-    };
-
-    if (isEditing) {
-      updateMutation.mutate(taskData);
-    } else {
-      createMutation.mutate(taskData);
+    showErrors({});
+    try {
+      await onSubmit(toTaskInput(values));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 400) {
+        const fieldErrors = fromApiErrors(error.details);
+        const mapped = Object.keys(fieldErrors).length > 0;
+        showErrors(fieldErrors, mapped ? undefined : error.message);
+      } else {
+        showErrors({}, 'Sorry, the task could not be saved. Try again later.');
+      }
     }
   };
 
-  const isLoading = createMutation.isPending || updateMutation.isPending;
+  const summary: ErrorSummaryItem[] = [
+    ...(formError ? [{ text: formError }] : []),
+    ...FIELD_ORDER.filter((field) => errors[field]).map((field) => ({
+      text: errors[field]!,
+      href: FIELD_IDS[field],
+    })),
+  ];
 
-  if (isEditing && isLoadingTask) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const remaining = DESCRIPTION_MAX_LENGTH - values.description.length;
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="mb-6">
-        <Link
-          to="/"
-          className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4"
+    <>
+      <ErrorSummary errors={summary} />
+
+      <form onSubmit={handleSubmit} noValidate>
+        <div className={`govuk-form-group${errors.title ? ' govuk-form-group--error' : ''}`}>
+          <label className="govuk-label govuk-label--m" htmlFor="title">
+            Title
+          </label>
+          <div id="title-hint" className="govuk-hint">
+            For example, review hearing bundle for case 1742
+          </div>
+          <ErrorMessage id="title-error" message={errors.title} />
+          <input
+            className={`govuk-input${errors.title ? ' govuk-input--error' : ''}`}
+            id="title"
+            name="title"
+            type="text"
+            maxLength={TITLE_MAX_LENGTH + 50}
+            value={values.title}
+            onChange={set('title')}
+            aria-describedby={describedBy('title-hint', errors.title && 'title-error')}
+          />
+        </div>
+
+        <div
+          className={`govuk-form-group govuk-character-count${errors.description ? ' govuk-form-group--error' : ''}`}
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Tasks
-        </Link>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {isEditing ? 'Edit Task' : 'Create New Task'}
-        </h1>
-        <p className="text-gray-600 mt-1">
-          {isEditing ? 'Update the task details below' : 'Fill in the details to create a new task'}
-        </p>
-      </div>
-
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-              Title *
-            </label>
-            <input
-              type="text"
-              id="title"
-              {...register('title', { 
-                required: 'Title is required',
-                maxLength: { value: 255, message: 'Title must be less than 255 characters' }
-              })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter a clear, descriptive title"
-            />
-            {errors.title && (
-              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+          <label className="govuk-label govuk-label--m" htmlFor="description">
+            Description (optional)
+          </label>
+          <div id="description-hint" className="govuk-hint">
+            Add anything the person doing the task needs to know
+          </div>
+          <ErrorMessage id="description-error" message={errors.description} />
+          <textarea
+            className={`govuk-textarea${errors.description || remaining < 0 ? ' govuk-textarea--error' : ''}`}
+            id="description"
+            name="description"
+            rows={5}
+            value={values.description}
+            onChange={set('description')}
+            aria-describedby={describedBy(
+              'description-hint',
+              'description-info',
+              errors.description && 'description-error',
             )}
+          />
+          <div
+            id="description-info"
+            className={`govuk-character-count__message ${remaining < 0 ? 'govuk-error-message' : 'govuk-hint'}`}
+            aria-live="polite"
+          >
+            {remaining < 0
+              ? `You have ${Math.abs(remaining).toLocaleString('en-GB')} ${Math.abs(remaining) === 1 ? 'character' : 'characters'} too many`
+              : `You have ${remaining.toLocaleString('en-GB')} ${remaining === 1 ? 'character' : 'characters'} remaining`}
           </div>
+        </div>
 
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              id="description"
-              rows={4}
-              {...register('description')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Provide additional details about the task (optional)"
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Add any relevant details, requirements, or notes for this task.
-            </p>
-          </div>
-
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              id="status"
-              {...register('status')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="PENDING">Pending</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
-              Due Date & Time *
-            </label>
-            <input
-              type="datetime-local"
-              id="dueDate"
-              {...register('dueDate', { 
-                required: 'Due date is required',
-                validate: {
-                  notInPast: (value) => {
-                    const selectedDate = new Date(value);
-                    const now = new Date();
-                    return selectedDate > now || 'Due date must be in the future';
-                  }
-                }
+        <div className={`govuk-form-group${errors.status ? ' govuk-form-group--error' : ''}`}>
+          <fieldset className="govuk-fieldset">
+            <legend className="govuk-fieldset__legend govuk-fieldset__legend--m">Status</legend>
+            <ErrorMessage id="status-error" message={errors.status} />
+            <div className="govuk-radios govuk-radios--small" data-module="govuk-radios">
+              {TASK_STATUSES.map((value, index) => {
+                const id = index === 0 ? 'status' : `status-${value}`;
+                return (
+                  <div className="govuk-radios__item" key={value}>
+                    <input
+                      className="govuk-radios__input"
+                      id={id}
+                      name="status"
+                      type="radio"
+                      value={value}
+                      checked={values.status === value}
+                      onChange={() => setValues((current) => ({ ...current, status: value }))}
+                    />
+                    <label className="govuk-label govuk-radios__label" htmlFor={id}>
+                      {STATUS_DISPLAY[value].label}
+                    </label>
+                  </div>
+                );
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            {errors.dueDate && (
-              <p className="mt-1 text-sm text-red-600">{errors.dueDate.message}</p>
-            )}
-            <p className="mt-1 text-sm text-gray-500">
-              Set when this task should be completed.
-            </p>
-          </div>
+            </div>
+          </fieldset>
+        </div>
 
-          <div className="flex gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              {isLoading 
-                ? (isEditing ? 'Updating...' : 'Creating...') 
-                : (isEditing ? 'Update Task' : 'Create Task')
-              }
-            </button>
-            <Link
-              to="/"
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </Link>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className={`govuk-form-group${errors.dueDate ? ' govuk-form-group--error' : ''}`}>
+          <fieldset
+            className="govuk-fieldset"
+            role="group"
+            aria-describedby={describedBy('due-date-hint', errors.dueDate && 'due-date-error')}
+          >
+            <legend className="govuk-fieldset__legend govuk-fieldset__legend--m">Due date</legend>
+            <div id="due-date-hint" className="govuk-hint">
+              {requireFutureDueDate && 'The task must be due in the future. '}
+              For example, 27 3 {new Date().getFullYear() + 1}
+            </div>
+            <ErrorMessage id="due-date-error" message={errors.dueDate} />
+            <div className="govuk-date-input" id="due-date">
+              {(
+                [
+                  ['day', 'Day', 2],
+                  ['month', 'Month', 2],
+                  ['year', 'Year', 4],
+                ] as const
+              ).map(([part, label, width]) => (
+                <div className="govuk-date-input__item" key={part}>
+                  <div className="govuk-form-group">
+                    <label
+                      className="govuk-label govuk-date-input__label"
+                      htmlFor={`due-date-${part}`}
+                    >
+                      {label}
+                    </label>
+                    <input
+                      className={`govuk-input govuk-date-input__input govuk-input--width-${width}${errors.dueDate ? ' govuk-input--error' : ''}`}
+                      id={`due-date-${part}`}
+                      name={`due-date-${part}`}
+                      type="text"
+                      inputMode="numeric"
+                      value={values[part]}
+                      onChange={set(part)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+
+        <div className={`govuk-form-group${errors.dueTime ? ' govuk-form-group--error' : ''}`}>
+          <fieldset
+            className="govuk-fieldset"
+            role="group"
+            aria-describedby={describedBy('due-time-hint', errors.dueTime && 'due-time-error')}
+          >
+            <legend className="govuk-fieldset__legend govuk-fieldset__legend--m">Due time</legend>
+            <div id="due-time-hint" className="govuk-hint">
+              Use the 24-hour clock, for example 14 30
+            </div>
+            <ErrorMessage id="due-time-error" message={errors.dueTime} />
+            <div className="govuk-date-input" id="due-time">
+              {(
+                [
+                  ['hour', 'Hour'],
+                  ['minute', 'Minute'],
+                ] as const
+              ).map(([part, label]) => (
+                <div className="govuk-date-input__item" key={part}>
+                  <div className="govuk-form-group">
+                    <label
+                      className="govuk-label govuk-date-input__label"
+                      htmlFor={`due-time-${part}`}
+                    >
+                      {label}
+                    </label>
+                    <input
+                      className={`govuk-input govuk-date-input__input govuk-input--width-2${errors.dueTime ? ' govuk-input--error' : ''}`}
+                      id={`due-time-${part}`}
+                      name={`due-time-${part}`}
+                      type="text"
+                      inputMode="numeric"
+                      value={values[part]}
+                      onChange={set(part)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+
+        <div className="govuk-button-group">
+          <button type="submit" className="govuk-button" disabled={isSubmitting}>
+            {submitLabel}
+          </button>
+          <Link className="govuk-link" to={cancelHref}>
+            Cancel
+          </Link>
+        </div>
+      </form>
+    </>
   );
 };
-
-export default TaskForm;

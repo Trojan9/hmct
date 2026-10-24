@@ -18,11 +18,12 @@ logs/
 *.db
 *.db-journal
 
-# GOV.UK Frontend assets copied at build time
-frontend/public/assets/
 
 # OS / editor
 .DS_Store
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Local tooling
+.claude/
