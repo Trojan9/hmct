@@ -9,14 +9,18 @@ export interface ErrorSummaryItem {
 /**
  * GOV.UK error summary. Takes focus when shown so screen reader users hear the
  * errors, and links move focus to the field rather than changing the URL.
+ * It refocuses only when the errors change (not on every render, which would
+ * pull focus away while the user corrects a field); remount it with a new
+ * `key` to refocus after each submit.
  * https://design-system.service.gov.uk/components/error-summary/
  */
 export const ErrorSummary = ({ errors }: { errors: ErrorSummaryItem[] }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const signature = errors.map((error) => `${error.href}:${error.text}`).join('|');
 
   useEffect(() => {
-    if (errors.length > 0) ref.current?.focus();
-  }, [errors]);
+    if (signature) ref.current?.focus();
+  }, [signature]);
 
   if (errors.length === 0) return null;
 

@@ -55,6 +55,20 @@ describe('Create task page', () => {
     );
   });
 
+  it('keeps focus in a field while the user corrects it', async () => {
+    installFakeApi();
+    const { user } = renderApp('/tasks/new');
+    await user.click(screen.getByRole('button', { name: 'Create task' }));
+    await screen.findByRole('alert');
+
+    const title = screen.getByLabelText('Title');
+    await user.click(title);
+    await user.type(title, 'Fixed');
+
+    expect(title).toHaveFocus();
+    expect(title).toHaveValue('Fixed');
+  });
+
   it('moves focus to the field when an error summary link is clicked', async () => {
     installFakeApi();
     const { user } = renderApp('/tasks/new');
