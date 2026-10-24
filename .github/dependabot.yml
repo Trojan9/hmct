@@ -1,3 +1,6 @@
+# Minor and patch updates arrive as grouped weekly PRs. Major upgrades
+# (including moving off the Node LTS line) are done deliberately in their own
+# branch, so Dependabot does not raise them.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -7,6 +10,9 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: npm
     directory: /frontend
     schedule:
@@ -14,10 +20,17 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: docker
     directories: [/backend, /frontend]
     schedule:
       interval: weekly
+    ignore:
+      # Stay on Node 22 LTS.
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule:
