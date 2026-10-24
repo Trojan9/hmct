@@ -1,403 +1,197 @@
-# HMCTS Task Management System
+# HMCTS caseworker task manager
 
-A comprehensive task management system designed for HMCTS caseworkers to efficiently manage their tasks and workflows.
+[![CI](https://github.com/Trojan9/hmct/actions/workflows/ci.yml/badge.svg)](https://github.com/Trojan9/hmct/actions/workflows/ci.yml)
 
-## 📋 Table of Contents
+My submission for the [HMCTS DTS developer technical test](https://github.com/hmcts/dts-developer-challenge). Caseworkers can create, view, update and delete their tasks.
 
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Installation & Setup](#installation--setup)
-- [API Documentation](#api-documentation)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
+- **API**: TypeScript, Express 5, Prisma and PostgreSQL. Validation uses Zod. The endpoints are documented with OpenAPI 3.1 and Swagger UI.
+- **Web app**: React and TypeScript, built with the [GOV.UK Design System](https://design-system.service.gov.uk/) and [MoJ Design System](https://design-patterns.service.justice.gov.uk/) components.
 
-## 🎯 Overview
+![Task list](docs/screenshots/task-list.jpg)
 
-This application provides a complete task management solution for HMCTS caseworkers, featuring a RESTful API backend and a modern React frontend. The system allows users to create, view, update, and delete tasks with comprehensive status tracking and due date management.
+| Task page | Change status | Validation errors |
+| --- | --- | --- |
+| ![Task page](docs/screenshots/task-detail.jpg) | ![Change status](docs/screenshots/change-status.jpg) | ![Validation errors](docs/screenshots/validation-errors.jpg) |
 
-## ✨ Features
+| On a phone | API documentation |
+| --- | --- |
+| ![Task list on a phone](docs/screenshots/mobile-task-list.jpg) | ![Swagger UI](docs/screenshots/api-docs.jpg) |
 
-### Backend API
-- ✅ **CRUD Operations**: Create, read, update, and delete tasks
-- ✅ **Data Validation**: Comprehensive input validation using Zod
-- ✅ **Error Handling**: Structured error responses and logging
-- ✅ **Status Management**: Task status tracking (Pending, In Progress, Completed, Cancelled)
-- ✅ **Due Date Tracking**: Date/time management with overdue detection
-- ✅ **Filtering & Sorting**: Query tasks by status with sorting options
-- ✅ **Database Integration**: SQLite with Prisma ORM
-- ✅ **API Documentation**: Comprehensive endpoint documentation
-- ✅ **Unit Testing**: Jest test suite with high coverage
+## How the brief is met
 
-### Frontend Application
-- ✅ **Modern UI**: Clean, responsive interface built with React & Tailwind CSS
-- ✅ **Real-time Updates**: Optimistic updates with React Query
-- ✅ **Form Validation**: Client-side validation with helpful error messages
-- ✅ **Status Filtering**: Filter tasks by status with visual indicators
-- ✅ **Overdue Alerts**: Visual warnings for overdue tasks
-- ✅ **Mobile Responsive**: Works seamlessly on all device sizes
-- ✅ **Loading States**: Professional loading indicators and feedback
-- ✅ **Toast Notifications**: Success/error notifications for all actions
+| Requirement | Where |
+| --- | --- |
+| Create a task with title, optional description, status and due date/time | `POST /api/tasks`, the [Create a task](frontend/src/pages/TaskFormPages.tsx) page |
+| Retrieve a task by ID | `GET /api/tasks/{id}`, the [task page](frontend/src/pages/TaskDetailPage.tsx) |
+| Retrieve all tasks | `GET /api/tasks` (filter, sort, paginate), the [task list](frontend/src/pages/TaskListPage.tsx) |
+| Update the status of a task | `PATCH /api/tasks/{id}/status`, the [change status](frontend/src/pages/ChangeStatusPage.tsx) page |
+| Delete a task | `DELETE /api/tasks/{id}`, the [delete confirmation](frontend/src/pages/DeleteTaskPage.tsx) page |
+| Unit tests | [backend/tests](backend/tests) and the `*.test.ts(x)` files in [frontend/src](frontend/src), run in [CI](.github/workflows/ci.yml) |
+| Store data in a database | PostgreSQL through Prisma, see the [schema](backend/prisma/schema.prisma) and [migrations](backend/prisma/migrations) |
+| Validation and error handling | Zod [schemas](backend/src/tasks/task.schemas.ts), a single [error handler](backend/src/middleware/errorHandler.ts), and GOV.UK [form validation](frontend/src/tasks/validation.ts) |
+| Document API endpoints | Swagger UI at `/api-docs` and the raw spec at `/api-docs.json`, generated from [openapi.ts](backend/src/docs/openapi.ts) |
 
-## 🛠 Tech Stack
+## Running it
 
-### Backend
-- **Runtime**: Node.js with TypeScript
-- **Framework**: Express.js
-- **Database**: SQLite with Prisma ORM
-- **Validation**: Zod schema validation
-- **Testing**: Jest with Supertest
-- **Logging**: Winston
-- **Security**: Helmet.js, CORS
+You need Node.js 22 (see [.nvmrc](.nvmrc)). Docker is optional.
 
-### Frontend
-- **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS
-- **State Management**: React Query (TanStack Query)
-- **Forms**: React Hook Form
-- **Icons**: Lucide React
-- **Notifications**: React Hot Toast
-- **Testing**: React Testing Library
-
-## 📁 Project Structure
-
-```
-hmcts-task-management/
-├── backend/
-│   ├── src/
-│   │   ├── controllers/          # Request handlers
-│   │   ├── routes/              # API route definitions
-│   │   ├── types/               # TypeScript type definitions
-│   │   ├── utils/               # Utility functions and logging
-│   │   ├── middleware/          # Express middleware
-│   │   └── app.ts              # Main application file
-│   ├── prisma/
-│   │   ├── schema.prisma       # Database schema
-│   │   └── migrations/         # Database migrations
-│   ├── tests/                  # Unit and integration tests
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── components/         # React components
-│   │   ├── services/           # API service layer
-│   │   ├── types/              # TypeScript interfaces
-│   │   └── App.tsx            # Main React component
-│   ├── public/                # Static assets
-│   └── package.json
-└── README.md
-```
-
-## 📋 Prerequisites
-
-- **Node.js** (v18 or higher)
-- **npm** or **yarn**
-- **Git**
-
-## 🚀 Installation & Setup
-
-### 1. Clone the Repository
+### Option 1: everything in Docker
 
 ```bash
-git clone https://github.com/Trojan9/hmct.git
-cd hmcts-task-management
+docker compose up --build
 ```
 
-### 2. Backend Setup
+- Web app: <http://localhost:8080>
+- API documentation: <http://localhost:8080/api-docs>
+
+This starts PostgreSQL, applies migrations, loads five example tasks and serves the web app through nginx. nginx also proxies the API, so the browser only talks to one origin.
+
+### Option 2: no database (quickest)
+
+The API can run against an in-memory store that is loaded with demo tasks. Data is lost when it stops.
 
 ```bash
-cd backend
-
-# Install dependencies
-npm install
-
-# Set up the database
-npx prisma generate
-npx prisma migrate dev --name init
-
-# Start development server
-npm run dev
+cd backend && npm install && npm run dev:memory
 ```
-
-The backend API will be available at `http://localhost:3001`
-
-### 3. Frontend Setup
 
 ```bash
-cd ../frontend
-
-# Install dependencies
-npm install
-
-# Create environment file
-echo "VITE_API_URL=http://localhost:3001" > .env
-
-# Start development server
-npm run dev
+cd frontend && npm install && npm run dev
 ```
 
-The frontend application will be available at `http://localhost:5173`
+Open <http://localhost:5173>. The Vite dev server proxies `/api` to the API on port 3001.
 
-### 4. Verify Installation
+### Option 3: local development with PostgreSQL
 
-- Visit `http://localhost:3001/health` to check backend status
-- Visit `http://localhost:5173` to access the frontend application
-
-## 📚 API Documentation
-
-### Base URL
-```
-http://localhost:3001/api
+```bash
+docker compose up -d db
 ```
 
-### Endpoints
-
-#### Get All Tasks
-```http
-GET /tasks
+```bash
+cd backend && cp .env.example .env && npm install && npm run db:migrate && npm run db:seed && npm run dev
 ```
 
-**Query Parameters:**
-- `status` (optional): Filter by task status (`PENDING`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`)
-- `sortBy` (optional): Sort field (default: `dueDate`)
-- `order` (optional): Sort order (`asc`, `desc`)
+Then start the frontend as in option 2.
 
-**Response:**
+## API
+
+Full, interactive documentation is at `/api-docs`. Summary:
+
+| Method | Path | Success | Errors |
+| --- | --- | --- | --- |
+| `GET` | `/api/tasks?status=&sortBy=&order=&page=&pageSize=` | `200` page of tasks and per-status counts | `400` |
+| `POST` | `/api/tasks` | `201` task, with a `Location` header | `400` |
+| `GET` | `/api/tasks/{id}` | `200` task | `404` |
+| `PUT` | `/api/tasks/{id}` | `200` task | `400`, `404` |
+| `PATCH` | `/api/tasks/{id}/status` | `200` task | `400`, `404` |
+| `DELETE` | `/api/tasks/{id}` | `204` | `404` |
+| `GET` | `/health`, `/health/ready` | `200` | `503` if the database is down |
+
+Every error uses the same shape, so clients only need to handle one:
+
 ```json
-[
-  {
-    "id": "clp123abc",
-    "title": "Review case documentation",
-    "description": "Review and validate case files for hearing",
-    "status": "PENDING",
-    "dueDate": "2024-12-25T10:00:00.000Z",
-    "createdAt": "2024-12-01T09:00:00.000Z",
-    "updatedAt": "2024-12-01T09:00:00.000Z"
+{
+  "error": {
+    "status": 400,
+    "code": "VALIDATION_ERROR",
+    "message": "The request contains invalid data",
+    "details": [{ "field": "title", "message": "Enter a title" }]
   }
-]
-```
-
-#### Get Task by ID
-```http
-GET /tasks/:id
-```
-
-**Response:**
-```json
-{
-  "id": "clp123abc",
-  "title": "Review case documentation",
-  "description": "Review and validate case files for hearing",
-  "status": "PENDING",
-  "dueDate": "2024-12-25T10:00:00.000Z",
-  "createdAt": "2024-12-01T09:00:00.000Z",
-  "updatedAt": "2024-12-01T09:00:00.000Z"
 }
 ```
 
-#### Create Task
-```http
-POST /tasks
-```
-
-**Request Body:**
-```json
-{
-  "title": "Review case documentation",
-  "description": "Review and validate case files for hearing",
-  "status": "PENDING",
-  "dueDate": "2024-12-25T10:00:00.000Z"
-}
-```
-
-**Response:** `201 Created` with task object
-
-#### Update Task
-```http
-PUT /tasks/:id
-```
-
-**Request Body:** (All fields optional)
-```json
-{
-  "title": "Updated title",
-  "description": "Updated description",
-  "status": "IN_PROGRESS",
-  "dueDate": "2024-12-26T10:00:00.000Z"
-}
-```
-
-**Response:** `200 OK` with updated task object
-
-#### Delete Task
-```http
-DELETE /tasks/:id
-```
-
-**Response:** `204 No Content`
-
-### Error Responses
-
-All endpoints return structured error responses:
-
-```json
-{
-  "error": "Validation failed",
-  "details": [
-    {
-      "field": "title",
-      "message": "Title is required"
-    }
-  ]
-}
-```
-
-**Status Codes:**
-- `400` - Bad Request (validation errors)
-- `404` - Not Found
-- `500` - Internal Server Error
-
-## 🧪 Testing
-
-### Backend Tests
+Example requests:
 
 ```bash
-cd backend
-
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# View test coverage
-npm test -- --coverage
+curl -X POST http://localhost:8080/api/tasks -H 'Content-Type: application/json' -d '{"title":"Review hearing bundle","dueDate":"2030-01-31T09:30:00Z"}'
 ```
-
-### Frontend Tests
 
 ```bash
-cd frontend
-
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
+curl -X PATCH http://localhost:8080/api/tasks/<id>/status -H 'Content-Type: application/json' -d '{"status":"COMPLETED"}'
 ```
 
-### Test Coverage
+## Design decisions
 
-The application maintains high test coverage:
-- **Backend**: 90%+ code coverage
-- **Frontend**: Component and integration tests
+### API
 
-## 🚀 Deployment
+- **Layers.** Requests go through routes, then a controller (validates input, picks the status code), then a service (business rules), then a repository (persistence). The service depends on a `TaskRepository` interface, so its rules are unit tested with an in-memory repository and no database. The same repository powers the no-database mode.
+- **A dedicated status endpoint.** The brief lists "update the status of a task" separately from editing, so it has its own `PATCH /api/tasks/{id}/status` that only accepts `status`. `PUT` replaces all editable fields.
+- **Strict validation.** Unknown fields are rejected rather than ignored. `sortBy` and `status` are allow-listed. This also stops arbitrary query values reaching the ORM. Blank descriptions are stored as `null`, so "no description" has one meaning.
+- **Due dates.** A new task must be due in the future. An existing task can keep a past due date, so an overdue task can still be edited. The rule is checked in the service using an injectable clock, so it can be tested. Dates are stored as `timestamptz` and exchanged as ISO 8601 with an offset.
+- **Listing.** Results are paginated (default 20, maximum 100) and sorted with a tie-breaker on `id`, so pages are stable. The response includes counts for every status, so the UI can show filter counts without extra requests. There are indexes on `status` and `due_date`.
+- **Errors.** Known errors (`AppError`) keep their status and message. Malformed JSON gets a `400` and oversized bodies get a `413`. Anything unexpected is logged with its request ID and returned as a generic `500` that never leaks internals.
+- **Operational basics.**
+  - Configuration is validated on start-up.
+  - Structured JSON logs (pino) with an `X-Request-Id` header on every response.
+  - Helmet security headers, CORS limited to configured origins, and rate limiting on `/api`.
+  - Liveness and readiness checks, and graceful shutdown.
 
-### Backend Deployment
+### Web app
 
-1. **Build the application:**
-```bash
-npm run build
+- **GOV.UK Design System without GOV.UK branding.** It uses GOV.UK and MoJ Frontend components and patterns that HMCTS services use. Because this internal tool is not on a gov.uk domain, it follows the guidance on [using GOV.UK Frontend without GOV.UK branding](https://frontend.design-system.service.gov.uk/using-govuk-frontend-without-govuk-branding/). That means the [generic header](https://design-system.service.gov.uk/components/generic-header/), Arial instead of GDS Transport, and no crown. Only the components in use are compiled into the stylesheet.
+- **GOV.UK patterns.**
+  - [Validation](https://design-system.service.gov.uk/patterns/validation/): validates on submit, then shows an error summary that takes focus, inline errors linked by `aria-describedby`, and an `Error:` prefix in the page title.
+  - [Date input](https://design-system.service.gov.uk/components/date-input/) with its recommended error messages.
+  - [Character count](https://design-system.service.gov.uk/components/character-count/), [summary list](https://design-system.service.gov.uk/components/summary-list/) with change links, and [one question per page](https://www.gov.uk/service-manual/design/form-structure) for changing status.
+  - A confirmation page with a [warning button](https://design-system.service.gov.uk/components/button/#warning-buttons) for deleting, instead of `confirm()`.
+  - [Notification banners](https://design-system.service.gov.uk/components/notification-banner/) for confirmations, and [page not found](https://design-system.service.gov.uk/patterns/page-not-found-pages/) and [problem with the service](https://design-system.service.gov.uk/patterns/problem-with-the-service-pages/) pages.
+  - [MoJ sub navigation](https://design-patterns.service.justice.gov.uk/components/sub-navigation/) for status filters.
+- **State in the URL.** Filter, sort and page are query parameters, so a view can be bookmarked or shared, and the back button works. Sorting uses an Apply button rather than auto-submitting, as GOV.UK recommends.
+- **Accessibility.**
+  - Skip link and landmarks; visually hidden text gives context to repeated links (for example "Change status *of Chase witness statement*").
+  - Focus moves to the new page's heading after each navigation, since a single-page app doesn't do this by itself.
+  - The table becomes stacked blocks on small screens.
+  - Every page was checked with axe-core in a real browser, and automated axe checks run in the test suite. No WCAG 2.2 AA issues were found. It has not been tested with real assistive-technology users.
+- **Security in production.** nginx serves the app with a strict Content Security Policy (no inline scripts or styles) and other security headers.
+
+## Testing
+
+| Suite | What it covers | Command |
+| --- | --- | --- |
+| API unit | Service rules with a fixed clock, Zod schemas, config, errors | `cd backend && npm test` |
+| API integration | Every endpoint through the real Express app (supertest): validation, 404s, bad JSON, body limits, rate limiting, CORS, request IDs, health checks | `cd backend && npm test` |
+| API database | The Prisma repository against real PostgreSQL: sorting, paging, counts, not-found handling | `cd backend && npm run test:db` (needs `DATABASE_URL`) |
+| Web unit | Form validation, date formatting and due states, pagination, API client | `cd frontend && npm test` |
+| Web pages | The whole app against a stateful fake API: every journey, error states, focus management, page titles, plus axe accessibility checks | `cd frontend && npm test` |
+| Smoke | `docker compose up`, then create, update and delete a task through nginx | CI only |
+
+Coverage thresholds are enforced (`npm run test:coverage`). [CI](.github/workflows/ci.yml) runs the following on every push and pull request:
+
+- Linting, Prettier and type checks.
+- All test suites, with migrations applied to a PostgreSQL service.
+- A check that the Prisma schema matches the migrations.
+- `npm audit` of production dependencies, CodeQL and the Docker smoke test.
+
+Dependabot keeps dependencies up to date.
+
+## Project structure
+
+```
+backend/
+  prisma/              schema and migrations
+  src/
+    app.ts             builds the Express app from its dependencies
+    server.ts          starts it (PostgreSQL or in-memory store)
+    config/            validated environment configuration
+    docs/              OpenAPI document
+    errors/            AppError, ValidationError, NotFoundError
+    middleware/        error and 404 handlers
+    tasks/             routes, controller, service, schemas, repositories
+  tests/               unit, integration and db suites
+frontend/
+  src/
+    api/               typed API client
+    components/        layout and GOV.UK components (error summary, pagination, ...)
+    pages/             one file per page
+    tasks/             validation, dates, status labels, React Query hooks
+    test/              fake API and render helpers
+  nginx/               production server config
+docker-compose.yml
 ```
 
-2. **Set environment variables:**
-```bash
-export NODE_ENV=production
-export PORT=3001
-```
+## What I would do next
 
-3. **Run database migrations:**
-```bash
-npx prisma migrate deploy
-```
-
-4. **Start the application:**
-```bash
-npm start
-```
-
-### Frontend Deployment
-
-1. **Build for production:**
-```bash
-npm run build
-```
-
-2. **Set environment variables:**
-```bash
-VITE_API_URL=http://localhost:3001
-```
-
-3. **Deploy the `dist/` folder** to your hosting provider
-
-### Environment Variables
-
-#### Backend
-- `PORT` - Server port (default: 3001)
-- `NODE_ENV` - Environment (development/production)
-- `DATABASE_URL` - Database connection string
-
-#### Frontend
-- `VITE_API_URL` - Backend API URL
-
-## 🏗 Architecture Decisions
-
-### Backend Architecture
-- **Controller Pattern**: Separation of concerns with dedicated controllers
-- **Service Layer**: API service layer for data operations
-- **Middleware**: Error handling and validation middleware
-- **Type Safety**: Full TypeScript implementation with Zod validation
-
-### Frontend Architecture
-- **Component-Based**: Reusable React components
-- **State Management**: React Query for server state, React state for local state
-- **Form Management**: React Hook Form for performance and validation
-- **Responsive Design**: Mobile-first approach with Tailwind CSS
-
-### Database Design
-- **Single Entity Model**: Task entity with all required fields
-- **Enum Types**: Predefined status values for consistency
-- **Timestamp Tracking**: Created and updated timestamps
-- **UUID Primary Keys**: Using cuid for unique identifiers
-
-## 🔧 Development Workflow
-
-### Code Quality
-- **ESLint**: Code linting and formatting
-- **TypeScript**: Strict type checking
-- **Prettier**: Code formatting (recommended)
-- **Husky**: Pre-commit hooks (recommended)
-
-### Git Workflow
-1. Create feature branch from `main`
-2. Implement feature with tests
-3. Ensure all tests pass
-4. Submit pull request
-5. Code review and merge
-
-## 📝 Available Scripts
-
-### Backend Scripts
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm start            # Start production server
-npm test             # Run tests
-npm run db:migrate   # Run database migrations
-npm run db:studio    # Open Prisma Studio
-```
-
-### Frontend Scripts
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm test             # Run tests
-npm run lint         # Run ESLint
-```
-
-**Built with ❤️ for HMCTS**
+- Sign-in through HMCTS IdAM, and assigning tasks to caseworkers.
+- An audit history of who changed what, and when.
+- Optimistic concurrency (`ETag` / `If-Match`) so two caseworkers can't overwrite each other's edits.
+- Browser end-to-end tests (Playwright) running against the Docker stack.
+- Search by title, and filtering by due date range.
