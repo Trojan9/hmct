@@ -13,6 +13,11 @@ updates:
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
+      # Prisma 6.13 to 7.10 depend on a vulnerable deepmerge-ts.
+      - dependency-name: prisma
+        versions: ['>=6.13.0 <7.11.0']
+      - dependency-name: '@prisma/client'
+        versions: ['>=6.13.0 <7.11.0']
   - package-ecosystem: npm
     directory: /frontend
     schedule:
