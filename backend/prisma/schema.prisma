@@ -1,23 +1,23 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Task {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
+  id          String     @id @default(cuid())
+  title       String     @db.VarChar(200)
+  description String?    @db.VarChar(2000)
   status      TaskStatus @default(PENDING)
-  dueDate     DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  dueDate     DateTime   @map("due_date") @db.Timestamptz(3)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@index([status])
+  @@index([dueDate])
   @@map("tasks")
 }
 
