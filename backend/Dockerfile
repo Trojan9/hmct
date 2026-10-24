@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:22-alpine AS base
+FROM node:25-alpine AS base
 # Prisma's query engine needs OpenSSL on Alpine.
 RUN apk add --no-cache openssl
 WORKDIR /app
