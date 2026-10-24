@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+coverage/
+
+# Environment files (copy .env.example instead)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Local databases
+*.db
+*.db-journal
+
+# GOV.UK Frontend assets copied at build time
+frontend/public/assets/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
